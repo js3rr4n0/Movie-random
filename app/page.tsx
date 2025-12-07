@@ -16,163 +16,132 @@ interface Genre {
   name: string
 }
 
-interface Language {
-  code: string
-  name: string
+interface StreamingProvider {
+  logo_path: string
+  provider_name: string
+  provider_id: number
 }
 
 export default function Home() {
   const [movie, setMovie] = useState<Movie | null>(null)
   const [genres, setGenres] = useState<Genre[]>([])
-  const [selectedGenre, setSelectedGenre] = useState<string>('')
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+  const [selectedGenre, setSelectedGenre] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [providers, setProviders] = useState<StreamingProvider[]>([])
 
-  const languages: Language[] = [
+  const languages = [
     { code: 'es', name: 'Español' },
     { code: 'en', name: 'English' },
-    { code: 'fr', name: 'Français' },
-    { code: 'ja', name: '日本語' },
-    { code: 'ko', name: '한국어' }
+    { code: 'fr', name: 'Français' }
   ]
 
-  useEffect(() => {
-    fetchGenres()
-  }, [])
-
-  const fetchGenres = async () => {
-    const res = await fetch('/api/genres')
-    const data = await res.json()
-    setGenres(data.genres)
+  // Enlaces directos por plataforma
+  const getProviderLink = (providerId: number, movieId: number) => {
+    const links: { [key: number]: string } = {
+      8: `https://www.netflix.com/search?q=${encodeURIComponent(movie?.title || '')}`, // Netflix
+      119: `https://www.primevideo.com/search?phrase=${encodeURIComponent(movie?.title || '')}`, // Prime Video
+      337: `https://www.disneyplus.com/search?q=${encodeURIComponent(movie?.title || '')}`, // Disney+
+      384: `https://www.hbomax.com/search?q=${encodeURIComponent(movie?.title || '')}`, // HBO Max
+      350: `https://tv.apple.com/search?q=${encodeURIComponent(movie?.title || '')}`, // Apple TV+
+      531: `https://www.paramountplus.com/search/${encodeURIComponent(movie?.title || '')}` // Paramount+
+    }
+    return links[providerId] || `https://www.google.com/search?q=${encodeURIComponent(movie?.title || '')}+watch+online`
   }
+
+  useEffect(() => {
+    fetch('/api/genres').then(r => r.json()).then(d => setGenres(d.genres || []))
+  }, [])
 
   const getRandomMovie = async () => {
     setLoading(true)
-    const params = new URLSearchParams({
-      genre: selectedGenre,
-      language: selectedLanguage
-    })
-    
+    const params = new URLSearchParams({ genre: selectedGenre, language: selectedLanguage })
     const res = await fetch(`/api/random-movie?${params}`)
     const data = await res.json()
     setMovie(data)
+    
+    if (data.id) {
+      fetch(`/api/watch-providers?movieId=${data.id}`)
+        .then(r => r.json())
+        .then(d => setProviders(d.results?.US?.flatrate || []))
+    }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="app-container">
+      <div className="content-wrapper">
         
-        {/* Header */}
-        <h1 className="text-5xl md:text-7xl font-bold text-center text-white mb-12 animate-pulse">
-          🎬 Película Sorpresa 🍿
-        </h1>
+        <header className="header">
+          <h1>Película Sorpresa</h1>
+          <p>Descubre tu próxima aventura cinematográfica</p>
+        </header>
 
-        {/* Filters */}
-        <div className="max-w-4xl mx-auto mb-8 bg-white/10 backdrop-blur-lg rounded-3xl p-6 shadow-2xl">
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            
-            {/* Genre Selector */}
-            <div>
-              <label className="block text-white font-semibold mb-2">
-                🎭 Género
-              </label>
-              <select 
-                value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full p-3 rounded-xl bg-white/20 text-white border-2 border-white/30 focus:border-pink-400 focus:outline-none transition-all"
-              >
-                <option value="">Todos los géneros</option>
-                {genres.map(genre => (
-                  <option key={genre.id} value={genre.id} className="text-black">
-                    {genre.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Language Selector */}
-            <div>
-              <label className="block text-white font-semibold mb-2">
-                🌍 Idioma
-              </label>
-              <select 
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="w-full p-3 rounded-xl bg-white/20 text-white border-2 border-white/30 focus:border-pink-400 focus:outline-none transition-all"
-              >
-                <option value="">Todos los idiomas</option>
-                {languages.map(lang => (
-                  <option key={lang.code} value={lang.code} className="text-black">
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Random Button */}
-          <button
-            onClick={getRandomMovie}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-pink-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? '🎲 Buscando...' : '🎲 ¡Sorpréndeme!'}
+        <div className="controls">
+          <select value={selectedGenre} onChange={e => setSelectedGenre(e.target.value)} className="select">
+            <option value="">Género</option>
+            {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          
+          <select value={selectedLanguage} onChange={e => setSelectedLanguage(e.target.value)} className="select">
+            <option value="">Idioma</option>
+            {languages.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
+          </select>
+          
+          <button onClick={getRandomMovie} disabled={loading} className="btn-primary">
+            {loading ? 'Buscando...' : 'Sorpréndeme'}
           </button>
         </div>
 
-        {/* Movie Card */}
         {movie && (
-          <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-105 transition-all duration-300">
-            <div className="md:flex">
+          <div className="movie-card">
+            <div className="movie-poster">
+              <img src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`} alt={movie.title} />
+            </div>
+            
+            <div className="movie-info">
+              <h2>{movie.title}</h2>
               
-              {/* Poster */}
-              <div className="md:w-1/3">
-                <img 
-                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                />
+              <div className="movie-meta">
+                <span className="rating">⭐ {movie.vote_average.toFixed(1)}</span>
+                <span className="year">{new Date(movie.release_date).getFullYear()}</span>
+                {movie.genre_ids?.slice(0, 2).map(id => {
+                  const genre = genres.find(g => g.id === id)
+                  return genre ? <span key={id} className="genre">{genre.name}</span> : null
+                })}
               </div>
 
-              {/* Info */}
-              <div className="md:w-2/3 p-8">
-                <h2 className="text-3xl font-bold text-gray-800 mb-3">
-                  {movie.title}
-                </h2>
-                
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="bg-yellow-400 text-gray-900 px-3 py-1 rounded-full font-bold">
-                    ⭐ {movie.vote_average?.toFixed(1)}
-                  </span>
-                  <span className="text-gray-600">
-                    📅 {movie.release_date}
-                  </span>
-                </div>
+              {movie.overview && (
+                <p className="overview">{movie.overview}</p>
+              )}
 
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  {movie.overview}
-                </p>
-
-                <div className="flex gap-2 flex-wrap">
-                  {movie.genre_ids?.slice(0, 3).map(id => {
-                    const genre = genres.find(g => g.id === id)
-                    return genre ? (
-                      <span key={id} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                        {genre.name}
-                      </span>
-                    ) : null
-                  })}
+              {providers.length > 0 && (
+                <div className="providers">
+                  <span className="providers-label">Ver en:</span>
+                  {providers.slice(0, 5).map(p => (
+                    <a
+                      key={p.provider_id}
+                      href={getProviderLink(p.provider_id, movie.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="provider-link"
+                      title={`Ver en ${p.provider_name}`}
+                    >
+                      <img 
+                        src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                        alt={p.provider_name}
+                      />
+                    </a>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Initial State */}
         {!movie && !loading && (
-          <div className="text-center text-white text-xl mt-12">
-            👆 Selecciona tus filtros y presiona el botón para descubrir una película
+          <div className="empty-state">
+            <p>👆 Selecciona tus preferencias y descubre una película</p>
           </div>
         )}
       </div>
