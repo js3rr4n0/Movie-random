@@ -1,4 +1,4 @@
-export async function GET(request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const genre = searchParams.get('genre')
   const language = searchParams.get('language')
