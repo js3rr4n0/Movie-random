@@ -9,7 +9,6 @@ interface Movie {
   vote_average: number
   release_date: string
   genre_ids: number[]
-  backdrop_path: string
 }
 
 interface Genre {
@@ -23,8 +22,7 @@ interface Language {
 }
 
 export default function Home() {
-  const [movies, setMovies] = useState<Movie[]>([])
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
+  const [movie, setMovie] = useState<Movie | null>(null)
   const [genres, setGenres] = useState<Genre[]>([])
   const [selectedGenre, setSelectedGenre] = useState<string>('')
   const [selectedLanguage, setSelectedLanguage] = useState<string>('')
@@ -40,12 +38,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchGenres()
-    fetchMovies()
   }, [])
-
-  useEffect(() => {
-    fetchMovies()
-  }, [selectedGenre, selectedLanguage])
 
   const fetchGenres = async () => {
     const res = await fetch('/api/genres')
@@ -53,58 +46,45 @@ export default function Home() {
     setGenres(data.genres)
   }
 
-  const fetchMovies = async () => {
+  const getRandomMovie = async () => {
     setLoading(true)
     const params = new URLSearchParams({
       genre: selectedGenre,
       language: selectedLanguage
     })
     
-    const res = await fetch(`/api/movies?${params}`)
+    const res = await fetch(`/api/random-movie?${params}`)
     const data = await res.json()
-    setMovies(data.results || [])
+    setMovie(data)
     setLoading(false)
   }
 
-  const openModal = (movie: Movie) => {
-    setSelectedMovie(movie)
-    document.body.style.overflow = 'hidden'
-  }
-
-  const closeModal = () => {
-    setSelectedMovie(null)
-    document.body.style.overflow = 'unset'
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <div className="container mx-auto px-4 py-8">
         
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 mb-4 tracking-tight">
-            CINÉPOLIS
-          </h1>
-          <p className="text-xl text-gray-300 font-light">Descubre tu próxima película favorita</p>
-        </div>
+        <h1 className="text-5xl md:text-7xl font-bold text-center text-white mb-12 animate-pulse">
+          🎬 Película Sorpresa 🍿
+        </h1>
 
         {/* Filters */}
-        <div className="max-w-6xl mx-auto mb-12 bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10 shadow-2xl">
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="max-w-4xl mx-auto mb-8 bg-white/10 backdrop-blur-lg rounded-3xl p-6 shadow-2xl">
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
             
             {/* Genre Selector */}
-            <div className="group">
-              <label className="block text-white/90 font-medium mb-3 text-sm uppercase tracking-wider">
-                Género
+            <div>
+              <label className="block text-white font-semibold mb-2">
+                🎭 Género
               </label>
               <select 
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full p-4 rounded-xl bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 transition-all backdrop-blur-sm"
+                className="w-full p-3 rounded-xl bg-white/20 text-white border-2 border-white/30 focus:border-pink-400 focus:outline-none transition-all"
               >
-                <option value="" className="text-gray-900">Todos los géneros</option>
+                <option value="">Todos los géneros</option>
                 {genres.map(genre => (
-                  <option key={genre.id} value={genre.id} className="text-gray-900">
+                  <option key={genre.id} value={genre.id} className="text-black">
                     {genre.name}
                   </option>
                 ))}
@@ -112,138 +92,87 @@ export default function Home() {
             </div>
 
             {/* Language Selector */}
-            <div className="group">
-              <label className="block text-white/90 font-medium mb-3 text-sm uppercase tracking-wider">
-                Idioma
+            <div>
+              <label className="block text-white font-semibold mb-2">
+                🌍 Idioma
               </label>
               <select 
                 value={selectedLanguage}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="w-full p-4 rounded-xl bg-white/10 text-white border border-white/20 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/50 transition-all backdrop-blur-sm"
+                className="w-full p-3 rounded-xl bg-white/20 text-white border-2 border-white/30 focus:border-pink-400 focus:outline-none transition-all"
               >
-                <option value="" className="text-gray-900">Todos los idiomas</option>
+                <option value="">Todos los idiomas</option>
                 {languages.map(lang => (
-                  <option key={lang.code} value={lang.code} className="text-gray-900">
+                  <option key={lang.code} value={lang.code} className="text-black">
                     {lang.name}
                   </option>
                 ))}
               </select>
             </div>
           </div>
+
+          {/* Random Button */}
+          <button
+            onClick={getRandomMovie}
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-pink-500 to-yellow-500 hover:from-pink-600 hover:to-yellow-600 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '🎲 Buscando...' : '🎲 ¡Sorpréndeme!'}
+          </button>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500"></div>
-          </div>
-        )}
-
-        {/* Movies Grid */}
-        {!loading && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-            {movies.map(movie => (
-              <div 
-                key={movie.id}
-                onClick={() => openModal(movie)}
-                className="group cursor-pointer relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:scale-110 hover:z-10 hover:shadow-2xl hover:shadow-purple-500/50"
-              >
-                <div className="aspect-[2/3] relative overflow-hidden">
-                  <img 
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <div className="flex items-center gap-2 text-yellow-400 text-sm font-bold">
-                        <span>⭐</span>
-                        <span>{movie.vote_average?.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3">
-                  <h3 className="text-white text-sm font-semibold line-clamp-2 group-hover:text-purple-300 transition-colors">
-                    {movie.title}
-                  </h3>
-                </div>
+        {/* Movie Card */}
+        {movie && (
+          <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-105 transition-all duration-300">
+            <div className="md:flex">
+              
+              {/* Poster */}
+              <div className="md:w-1/3">
+                <img 
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Modal */}
-        {selectedMovie && (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
-            onClick={closeModal}
-          >
-            <div 
-              className="relative max-w-5xl w-full bg-gradient-to-br from-slate-900 to-purple-900 rounded-3xl overflow-hidden shadow-2xl animate-scaleIn"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button 
-                onClick={closeModal}
-                className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-all hover:scale-110 backdrop-blur-sm"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <div className="flex flex-col md:flex-row">
-                {/* Backdrop/Poster */}
-                <div className="md:w-2/5 relative">
-                  <img 
-                    src={`https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}`}
-                    alt={selectedMovie.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+              {/* Info */}
+              <div className="md:w-2/3 p-8">
+                <h2 className="text-3xl font-bold text-gray-800 mb-3">
+                  {movie.title}
+                </h2>
+                
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="bg-yellow-400 text-gray-900 px-3 py-1 rounded-full font-bold">
+                    ⭐ {movie.vote_average?.toFixed(1)}
+                  </span>
+                  <span className="text-gray-600">
+                    📅 {movie.release_date}
+                  </span>
                 </div>
 
-                {/* Info */}
-                <div className="md:w-3/5 p-8 md:p-12 overflow-y-auto max-h-[80vh]">
-                  <h2 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight">
-                    {selectedMovie.title}
-                  </h2>
-                  
-                  <div className="flex flex-wrap items-center gap-4 mb-8">
-                    <div className="flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-full font-bold">
-                      <span>⭐</span>
-                      <span className="text-lg">{selectedMovie.vote_average?.toFixed(1)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full backdrop-blur-sm">
-                      <span>📅</span>
-                      <span>{new Date(selectedMovie.release_date).getFullYear()}</span>
-                    </div>
-                  </div>
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  {movie.overview}
+                </p>
 
-                  <div className="mb-8">
-                    <h3 className="text-purple-300 font-semibold mb-3 text-sm uppercase tracking-wider">Sinopsis</h3>
-                    <p className="text-gray-300 leading-relaxed text-lg">
-                      {selectedMovie.overview || 'No hay descripción disponible.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-purple-300 font-semibold mb-3 text-sm uppercase tracking-wider">Géneros</h3>
-                    <div className="flex gap-3 flex-wrap">
-                      {selectedMovie.genre_ids?.map(id => {
-                        const genre = genres.find(g => g.id === id)
-                        return genre ? (
-                          <span key={id} className="bg-purple-500/20 border border-purple-400/30 text-purple-200 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm">
-                            {genre.name}
-                          </span>
-                        ) : null
-                      })}
-                    </div>
-                  </div>
+                <div className="flex gap-2 flex-wrap">
+                  {movie.genre_ids?.slice(0, 3).map(id => {
+                    const genre = genres.find(g => g.id === id)
+                    return genre ? (
+                      <span key={id} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                        {genre.name}
+                      </span>
+                    ) : null
+                  })}
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Initial State */}
+        {!movie && !loading && (
+          <div className="text-center text-white text-xl mt-12">
+            👆 Selecciona tus filtros y presiona el botón para descubrir una película
           </div>
         )}
       </div>
